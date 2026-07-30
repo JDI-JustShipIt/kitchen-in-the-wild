@@ -5,7 +5,7 @@ export type QualityPreset = 'low' | 'high' | 'ultra';
 export interface LaasParams {
   /** world seed — reproduces the entire world */
   seed: number;
-  /** scene to boot: world | sanity | terrain | gallery (registry in debug/Scenes.ts) */
+  /** scene to boot: world | sanity | terrain | gallery | kitchen (registry in debug/Scenes.ts) */
   scene: string;
   /** time of day, hours 0..24 */
   timeOfDay: number;

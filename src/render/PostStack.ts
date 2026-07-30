@@ -67,12 +67,23 @@ export class PostStack {
     tod: number,
     clouds: Clouds | null = null,
     froxels: Froxels | null = null,
+    opts?: { ablateExtra?: Iterable<string> },
   ) {
     const { renderer, scene, camera } = engine;
     const q = new URLSearchParams(window.location.search);
     const cloudview = q.get('cloudview');
     // perf attribution: ?ablate=clouds,ao,taa,bloom disables stages
-    const ablate = new Set((q.get('ablate') ?? '').split(','));
+    // ablateExtra: scene defaults (e.g. kitchen) that aren't in the URL
+    const ablate = new Set([
+      ...(q.get('ablate') ?? '')
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+      ...(opts?.ablateExtra ?? []),
+    ]);
+    ablate.delete('keepwater');
+    ablate.delete('keepao');
+    ablate.delete('keeptaa');
     // debug probes need raw values — tone mapping would garble them
     const skyveldbg = q.get('skyveldbg') !== null && q.get('skyveldbg') !== '';
     renderer.toneMapping = cloudview || skyveldbg ? NoToneMapping : AgXToneMapping;
@@ -586,11 +597,12 @@ export class PostStack {
       // saturation + gentle contrast around mid-gray
       c = mix(vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))), c, float(uSat));
       c = c.div(0.18).pow(vec3(float(uContrast))).mul(0.18);
-      // restrained vignette + static grain (freeze-deterministic)
-      const v = screenUV.sub(0.5);
-      const vig = float(1).sub(dot(v, v).mul(0.42));
-      const grain = hash12(screenUV.mul(vec2(1923.7, 1671.3))).sub(0.5).mul(0.012);
-      return c.mul(vig).add(grain);
+      // vignette + static grain disabled (kitchen quality — edge/far grit)
+      // const v = screenUV.sub(0.5);
+      // const vig = float(1).sub(dot(v, v).mul(0.42));
+      // const grain = hash12(screenUV.mul(vec2(1923.7, 1671.3))).sub(0.5).mul(0.012);
+      // return c.mul(vig).add(grain);
+      return c;
     })();
 
     // ?skyveldbg=err|raw|ana — TRAA velocity diagnostics over far geometry

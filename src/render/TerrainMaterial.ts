@@ -39,6 +39,7 @@ import {
 } from '../gpu/passes/NoiseBake';
 import { sunU } from './VegMaterials';
 import { zoneMasks, type MacroParams } from '../world/MacroMap';
+import { padReliefGate } from '../world/KitchenPad';
 import { LAKE_LEVEL, WORLD_HALF, WORLD_SIZE } from '../world/WorldConst';
 
 export interface TerrainShadingInputs {
@@ -326,7 +327,8 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
     const b2 = fbmG(0.19, 0.31, 0.77).mul(0.24 * 2);
     const bumpAmp = mix(float(0.25), float(0.85), rockW)
       .mul(snowW.mul(0.7).oneMinus())
-      .mul(farK.oneMinus());
+      .mul(farK.oneMinus())
+      .mul(padReliefGate(wxz));
     nrm = nrm
       .add(
         vec3(
@@ -354,7 +356,8 @@ export function buildTerrainShading(inp: TerrainShadingInputs): TerrainShading {
       .mul(snowW.mul(0.75).oneMinus())
       .mul(
         clamp(float(DISP.fade1).sub(camDist).div(DISP.fade1 - DISP.fade0), 0, 1),
-      );
+      )
+      .mul(padReliefGate(wxz));
     const gF = fbmG(DISP.sF1).mul(2 * DISP.wF1);
     const gR = ridG(DISP.sRid).mul(
       rockKd.mul(1 - DISP.ridBase).add(DISP.ridBase).mul(DISP.wRid),

@@ -74,6 +74,7 @@ import { depthPrepassTwin } from '../render/VegPrepass';
 import { gustAt, windContext, windExposure, windU } from '../render/Wind';
 import type { NB, NF, NI, NU, NV2, NV3, NV4 } from '../gpu/TSLTypes';
 import type { Heightfield } from '../world/Heightfield';
+import { getKitchenPad } from '../world/KitchenPad';
 import type { ProbeGI } from '../gpu/passes/ProbeGI';
 import { WORLD_SIZE } from '../world/WorldConst';
 import {
@@ -341,6 +342,23 @@ export class GroundRing {
     this.group.add(this.prepassGroup);
     const hf = this.hf;
     const salt = this.seed.sub('groundring') & 0x7fffffff;
+    const pad = getKitchenPad();
+    const padMinX = float(pad?.minX ?? 1);
+    const padMaxX = float(pad?.maxX ?? -1);
+    const padMinZ = float(pad?.minZ ?? 1);
+    const padMaxZ = float(pad?.maxZ ?? -1);
+    const rejectPad = (wpos: NV2): void => {
+      If(
+        wpos.x
+          .greaterThanEqual(padMinX)
+          .and(wpos.x.lessThanEqual(padMaxX))
+          .and(wpos.y.greaterThanEqual(padMinZ))
+          .and(wpos.y.lessThanEqual(padMaxZ)),
+        () => {
+          Return();
+        },
+      );
+    };
     const camU = this.camU;
     const planesU = this.planesU;
     const canopyTex = this.canopyTex;
@@ -425,6 +443,7 @@ export class GroundRing {
       const wc = worldCell(sx, sy, GRASS_GRID, GRASS_CELL);
       const jit = cellHash2(wc, salt);
       const wpos = wc.add(jit).mul(GRASS_CELL);
+      rejectPad(wpos);
       const dist = wpos.sub(vec2(camU.x, camU.z)).length();
       If(dist.greaterThan(GRASS_R), () => {
         Return();
@@ -518,6 +537,7 @@ export class GroundRing {
       const wc = worldCell(sx, sy, DEB_GRID, DEB_CELL);
       const jit = cellHash2(wc, salt ^ 0x5dd5);
       const wpos = wc.add(jit).mul(DEB_CELL);
+      rejectPad(wpos);
       const dist = wpos.sub(vec2(camU.x, camU.z)).length();
       If(dist.greaterThan(DEB_R), () => {
         Return();
@@ -610,6 +630,7 @@ export class GroundRing {
       const wc = worldCell(sx, sy, FAR_GRID, FAR_CELL);
       const jit = cellHash2(wc, salt ^ 0x6f21);
       const wpos = wc.add(jit).mul(FAR_CELL);
+      rejectPad(wpos);
       const dist = wpos.sub(vec2(camU.x, camU.z)).length();
       If(dist.lessThan(FAR_R0 - 16).or(dist.greaterThan(FAR_R)), () => {
         Return();

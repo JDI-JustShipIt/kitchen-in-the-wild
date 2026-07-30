@@ -1,4 +1,4 @@
-/** Scene registry — `?scene=` selects the boot scene (world | sanity | terrain | gallery …). */
+/** Scene registry — `?scene=` selects the boot scene (world | sanity | terrain | gallery | kitchen …). */
 
 import type { Engine } from '../core/Engine';
 import type { LaasHooks } from '../core/Hooks';

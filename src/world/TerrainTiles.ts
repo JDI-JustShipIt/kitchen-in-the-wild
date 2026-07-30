@@ -49,6 +49,7 @@ import {
 import { DISP, buildTerrainShading } from '../render/TerrainMaterial';
 import { PERIOD_FBM, PERIOD_RID, PERIOD_VAL } from '../gpu/passes/NoiseBake';
 import type { Heightfield } from './Heightfield';
+import { padReliefGate } from './KitchenPad';
 import { macroTerrain } from './MacroMap';
 import { FAR_RADIUS, WORLD_HALF, WORLD_SIZE } from './WorldConst';
 
@@ -178,7 +179,9 @@ export class TerrainTiles {
       .mul(DISP.wF1)
       .add(f2.mul(DISP.wF2))
       .add(r1.mul(rockK.mul(1 - DISP.ridBase).add(DISP.ridBase)).mul(DISP.wRid))
-      .mul(dispAmp);
+      .mul(dispAmp)
+      // kitchen pad: zero geometric relief so terrain can't poke through the floor
+      .mul(padReliefGate(wpos));
     mat.positionNode = vec3(wpos.x, hSample.add(disp), wpos.y);
     // shadow casting: skip the morph + bilinear (4 reads → 1); cascade texels
     // are meters wide, normalBias absorbs the nearest-fetch steps

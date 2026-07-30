@@ -15,6 +15,7 @@ import { parseCamString, parseParams } from './core/Params';
 import { WorldSeed } from './core/Seed';
 import { Hud } from './debug/HUD';
 import { buildGalleryScene } from './debug/GalleryScene';
+import { buildKitchenWorldScene } from './debug/KitchenWorldScene';
 import { buildSanityScene } from './debug/SanityScene';
 import { buildShadowTestScene } from './debug/ShadowTestScene';
 import { buildTerrainScene } from './debug/TerrainScene';
@@ -61,7 +62,10 @@ async function boot(): Promise<void> {
   registerScene('terrain', buildTerrainScene);
   registerScene('gallery', buildGalleryScene);
   registerScene('shadowtest', buildShadowTestScene);
+  registerScene('kitchen', buildKitchenWorldScene);
   // 'world' becomes the streamed open world once terrain tiles land.
+  // Prefer kitchen as the bid-trial entry when ?scene is omitted? keep world=terrain;
+  // trial URL is explicit: ?scene=kitchen
   registerScene('world', buildTerrainScene);
 
   const ctx: WorldContext = {

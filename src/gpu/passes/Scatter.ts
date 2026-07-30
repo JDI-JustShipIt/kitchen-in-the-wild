@@ -43,6 +43,7 @@ import {
 } from 'three/tsl';
 import type { WorldSeed } from '../../core/Seed';
 import type { Heightfield } from '../../world/Heightfield';
+import { getKitchenPad } from '../../world/KitchenPad';
 import { LAKE_LEVEL, TREELINE, WORLD_SIZE } from '../../world/WorldConst';
 import { fbm3 } from '../noise/NoiseTSL';
 import type { NF, NI, NU, NV2, NV4 } from '../TSLTypes';
@@ -361,6 +362,31 @@ export function canopyAt(tex: StorageTexture, wxz: NV2): NF {
   return (texture(tex, uv) as unknown as NV4).x;
 }
 
+/** TSL: reject samples inside the kitchen pad AABB (no-op when no pad). */
+function padBounds() {
+  const pad = getKitchenPad();
+  // inverted empty AABB when unset so the inside test never fires
+  return {
+    minX: float(pad?.minX ?? 1),
+    maxX: float(pad?.maxX ?? -1),
+    minZ: float(pad?.minZ ?? 1),
+    maxZ: float(pad?.maxZ ?? -1),
+  };
+}
+
+function rejectKitchenPad(wpos: NV2, b: ReturnType<typeof padBounds>): void {
+  If(
+    wpos.x
+      .greaterThanEqual(b.minX)
+      .and(wpos.x.lessThanEqual(b.maxX))
+      .and(wpos.y.greaterThanEqual(b.minZ))
+      .and(wpos.y.lessThanEqual(b.maxZ)),
+    () => {
+      Return();
+    },
+  );
+}
+
 export async function runScatter(
   renderer: Renderer,
   hf: Heightfield,
@@ -369,6 +395,7 @@ export async function runScatter(
   const sT = seed.sub('scatter/trees') & 0x7fffffff;
   const sU = seed.sub('scatter/understory') & 0x7fffffff;
   const sE = seed.sub('scatter/extras') & 0x7fffffff;
+  const padB = padBounds();
 
   // ---------------------------------------------------------------- trees --
   const treeG = Math.round(WORLD_SIZE / TREE_CELL);
@@ -384,6 +411,7 @@ export async function runScatter(
     const cell = vec2(float(i.mod(treeG)), float(i.div(treeG)));
     const jit = cellHash2(cell, sT);
     const wpos = cell.add(jit).div(treeG).sub(0.5).mul(WORLD_SIZE);
+    rejectKitchenPad(wpos, padB);
     const s = sampleSite(hf, wpos);
 
     // hard exclusions: open/standing water, river channels, lake shelf
@@ -500,6 +528,7 @@ export async function runScatter(
     const cell = vec2(float(i.mod(underG)), float(i.div(underG)));
     const jit = cellHash2(cell, sU);
     const wpos = cell.add(jit).div(underG).sub(0.5).mul(WORLD_SIZE);
+    rejectKitchenPad(wpos, padB);
     const s = sampleSite(hf, wpos);
 
     If(s.h.lessThan(LAKE_LEVEL + 0.35), () => {
@@ -602,6 +631,7 @@ export async function runScatter(
     const cell = vec2(float(i.mod(extraG)), float(i.div(extraG)));
     const jit = cellHash2(cell, sE);
     const wpos = cell.add(jit).div(extraG).sub(0.5).mul(WORLD_SIZE);
+    rejectKitchenPad(wpos, padB);
     const s = sampleSite(hf, wpos);
 
     If(s.h.lessThan(LAKE_LEVEL + 0.3), () => {
@@ -716,6 +746,7 @@ export async function runScatter(
     const cell = vec2(float(i.mod(stoneG)), float(i.div(stoneG)));
     const jit = cellHash2(cell, sS);
     const wpos = cell.add(jit).div(stoneG).sub(0.5).mul(WORLD_SIZE);
+    rejectKitchenPad(wpos, padB);
     const s = sampleSite(hf, wpos);
     If(s.h.lessThan(LAKE_LEVEL + 0.25), () => {
       Return();
